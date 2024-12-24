@@ -5,8 +5,8 @@ from setuptools import find_packages, setup
 NAME = "dailycheckin"
 FOLDER = "dailycheckin"
 DESCRIPTION = "dailycheckin"
-EMAIL = "133397418@qq.com"
-AUTHOR = "Sitoi"
+EMAIL = "445991004@qq.com"
+AUTHOR = "Wood"
 REQUIRES_PYTHON = ">=3.9.0"
 VERSION = None
 
