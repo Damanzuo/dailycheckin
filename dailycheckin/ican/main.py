@@ -27,15 +27,24 @@ class ICan(CheckIn):
         url = f'{self.base_url}/api/sino-archives/v1/user/info'
         headers = {'Sino-Auth': refresh_token}
         response = requests.get(url=url, headers=headers, verify=False)  # 禁用 SSL 证书验证
-        print(response.status_code)
+        print(f'update_token:  {response.status_code}')
         status_code = response.status_code
         return status_code
 
     def sign(self, access_token):
-        pass
+        '''
+           签到
+        '''
+        url = f'{self.base_url}/api/sino-member/signRecord/signStatus'
+        headers = {'Sino-Auth': access_token}
+        response = requests.get(url=url, headers=headers, verify=False)  # 禁用 SSL 证书验证
+        # print(json.loads(response.text))
+        return [{"name": "ICAN", "value": json.loads(response.text)['msg']}]
 
     def record_uric_acid(self, access_token):
-        pass
+        '''
+            记录尿酸
+        '''
         msg = []
         url = f'{self.base_url}/api/sino-health/ua/save?familyUserId='
         headers = {'Sino-Auth': access_token, 'Content-Type': 'application/json'}
@@ -68,6 +77,9 @@ class ICan(CheckIn):
         return msg
 
     def record_diet(self, access_token):
+        '''
+              记录饮食
+        '''
         headers = {'Sino-Auth': access_token, 'Content-Type': 'application/json'}
         food_url = f'{self.base_url}/api/sino-knowledge/v1/food-items-info/page-app'
         diet_url = f'{self.base_url}/api/sino-health/v1/diet-record/save-or-update'
@@ -78,14 +90,13 @@ class ICan(CheckIn):
 
         msg = []
         response_data = json.loads(response.text)
-        print(type(response_data))
         for i in range(0, 4):
             random_number = random.randrange(0, 9)
             foods = response_data["data"]["records"]
             data = {
                 "uploadType": "0",
                 "platformType": 1,
-                "dietTypeName": "晚餐",
+                "dietTypeName": "午餐",
                 "dietTime": (datetime.now()).strftime("%Y-%m-%d %H:%M:%S"),
                 "dietType": 5,
                 "dataSource": 1,
@@ -122,14 +133,64 @@ class ICan(CheckIn):
             time.sleep(2)
         return msg
 
+    def record_blood_sugar(self, refresh_token):
+        '''
+            记录血糖
+        '''
+        msg = []
+        headers = {'Sino-Auth': refresh_token, 'Content-Type': 'application/json'}
+        url = f'{self.base_url}/api/sino-health/detectiondata/addDetectionData?familyUserId='
+        for i in range(0, 4):
+            data = {
+                "mode": 1,
+                "detectionIndicatorsId": 1,
+                "detectionChannel": 1,
+                "detectionTime": (datetime.now()).strftime("%Y-%m-%d %H:%M:%S"),
+                "detectionWay": 1,
+                "detectionWayType": 0,
+                "detectionWaySource": 0,
+                "remark": "",
+                "isSocial": 0,
+                "image": "",
+                "messageContent": "",
+                "result": {
+                    "glucose": {
+                        "val": f'{random.uniform(5, 6.5)}',
+                        "unit": "mmol/L",
+                        "timeCode": "5",
+                        "timeCodeName": "午餐后"
+                    }
+                },
+                "version": 1
+            }
+            response = requests.post(url=url, headers=headers, data=json.dumps(data), verify=False)
+            if response.status_code != 200:
+                return [{"name": "ICAN", "value": "记录血糖失败"}]
+            msg.append({"name": f"ICAN 第{i}次记录饮食", "value": "成功"})
+            time.sleep(5)
+        return msg
+
+    def get_question(self, refresh_token):
+        '''
+            记录血糖
+        '''
+        msg = []
+        headers = {'Sino-Auth': refresh_token, 'Content-Type': 'application/json'}
+        url = f'{self.base_url}/api/sino-social/dailyQuestion/getQuestion'
+
+
+
     def main(self):
         refresh_token = self.check_item.get("Sino-Auth")
-        status_code = self.update_token(refresh_token)
-        if status_code != 200:
-            return [{"name": "ICAN", "value": "token 过期"}]
-        # msg = self.sign(refresh_token)
-        # msg = self.record_diet(refresh_token)
-        # msg = "\n".join([f"{one.get('name')}: {one.get('value')}" for one in msg])
+        # status_code = self.update_token(refresh_token)
+        # if status_code != 200:
+        #     return [{"name": "ICAN", "value": "token 过期"}]
+        msg = self.sign(refresh_token)
+        msg = "\n".join([f"{one.get('name')}: {one.get('value')}" for one in msg])
+        msg = self.record_blood_sugar(refresh_token)
+        msg = "\n".join([f"{one.get('name')}: {one.get('value')}" for one in msg])
+        msg = self.record_diet(refresh_token)
+        msg = "\n".join([f"{one.get('name')}: {one.get('value')}" for one in msg])
         msg = self.record_uric_acid(refresh_token)
         msg = "\n".join([f"{one.get('name')}: {one.get('value')}" for one in msg])
         return msg

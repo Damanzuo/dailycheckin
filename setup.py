@@ -2,7 +2,7 @@ import os
 
 from setuptools import find_packages, setup
 
-NAME = "dailycheckin"
+NAME = "dailycheckin_wood"
 FOLDER = "dailycheckin"
 DESCRIPTION = "dailycheckin"
 EMAIL = "445991004@qq.com"
