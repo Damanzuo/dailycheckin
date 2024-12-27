@@ -1,6 +1,5 @@
 import json
 import os
-import logging
 import requests
 import urllib3
 import random
@@ -10,10 +9,6 @@ from datetime import datetime
 from dailycheckin import CheckIn
 
 urllib3.disable_warnings()
-
-logging.basicConfig(level=logging.DEBUG)
-urllib3_logger = logging.getLogger("urllib3")
-urllib3_logger.setLevel(logging.DEBUG)
 
 
 class ICan(CheckIn):
@@ -35,7 +30,7 @@ class ICan(CheckIn):
         '''
            签到
         '''
-        url = f'{self.base_url}/api/sino-member/signRecord/signStatus'
+        url = f'{self.base_url}/api/sino-member/signRecord/sign'
         headers = {'Sino-Auth': access_token}
         response = requests.get(url=url, headers=headers, verify=False)  # 禁用 SSL 证书验证
         # print(json.loads(response.text))
@@ -178,21 +173,54 @@ class ICan(CheckIn):
         headers = {'Sino-Auth': refresh_token, 'Content-Type': 'application/json'}
         url = f'{self.base_url}/api/sino-social/dailyQuestion/getQuestion'
 
-
+    def post_a_comment(self, refresh_token):
+        msg = []
+        headers = {'Sino-Auth': refresh_token, 'Content-Type': 'application/json'}
+        get_by_score_url = f'{self.base_url}/api/sino-social/messageinformation/get-by-score'
+        url = f'{self.base_url}/api/sino-social/reviewinformation/add'
+        data = {
+            "current": 1,
+            "size": 10,
+            "createTime": datetime.now().timestamp(),
+            "isTop": ""
+        }
+        response = requests.post(url=get_by_score_url, headers=headers, data=json.dumps(data), verify=False)
+        if response.status_code != 200:
+            return [{"name": "ICAN", "value": "获取帖子失败"}]
+        response_data = json.loads(response.text)
+        for i in range(0, 3):
+            data = {
+                "messageContentId": f"{response_data['data']['records'][i]['id']}",
+                "messageSource": "2",
+                "reviewType": 1,
+                "reviewContent": "学习了",
+                "specialSign": 1,
+                "replyAccountId": f"{response_data['data']['records'][i]['accountId']}",
+                "topicSubjectId": response_data['data']['records'][i]['topicType'],
+                "contentType": 1
+            }
+            response = requests.post(url=url, headers=headers, data=json.dumps(data), verify=False)
+            if response.status_code != 200:
+                return [{"name": "ICAN", "value": "记录血糖失败"}]
+            msg.append({"name": f"ICAN 第{i}次发布评论", "value": "成功"})
+            time.sleep(5)
+        return msg
 
     def main(self):
         refresh_token = self.check_item.get("Sino-Auth")
         # status_code = self.update_token(refresh_token)
         # if status_code != 200:
         #     return [{"name": "ICAN", "value": "token 过期"}]
-        msg = self.sign(refresh_token)
-        msg = "\n".join([f"{one.get('name')}: {one.get('value')}" for one in msg])
-        msg = self.record_blood_sugar(refresh_token)
-        msg = "\n".join([f"{one.get('name')}: {one.get('value')}" for one in msg])
-        msg = self.record_diet(refresh_token)
-        msg = "\n".join([f"{one.get('name')}: {one.get('value')}" for one in msg])
-        msg = self.record_uric_acid(refresh_token)
-        msg = "\n".join([f"{one.get('name')}: {one.get('value')}" for one in msg])
+        temp = self.sign(refresh_token)
+        msg = "\n".join([f"{one.get('name')}: {one.get('value')}" for one in temp])
+        temp = self.record_blood_sugar(refresh_token)
+        msg = "\n".join([f"{one.get('name')}: {one.get('value')}" for one in temp])
+        temp = self.record_diet(refresh_token)
+        msg = "\n".join([f"{one.get('name')}: {one.get('value')}" for one in temp])
+        temp = self.record_uric_acid(refresh_token)
+        msg = "\n".join([f"{one.get('name')}: {one.get('value')}" for one in temp])
+        temp = self.post_a_comment(refresh_token)
+        msg = "\n".join([f"{one.get('name')}: {one.get('value')}" for one in temp])
         return msg
 
 
