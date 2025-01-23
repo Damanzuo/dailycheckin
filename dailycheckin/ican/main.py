@@ -150,7 +150,7 @@ class ICan(CheckIn):
                 "messageContent": "",
                 "result": {
                     "glucose": {
-                        "val": f'{random.uniform(5, 6.5)}',
+                        "val": f'{random.uniform(5, 6.5):.1f}',
                         "unit": "mmol/L",
                         "timeCode": "5",
                         "timeCodeName": "午餐后"
@@ -167,7 +167,7 @@ class ICan(CheckIn):
 
     def get_question(self, refresh_token):
         '''
-            记录血糖
+            答题
         '''
         msg = []
         headers = {'Sino-Auth': refresh_token, 'Content-Type': 'application/json'}
@@ -186,7 +186,7 @@ class ICan(CheckIn):
         }
         response = requests.post(url=get_by_score_url, headers=headers, data=json.dumps(data), verify=False)
         if response.status_code != 200:
-            return [{"name": "ICAN", "value": "获取帖子失败"}]
+            return [{"name": "ICAN", "value": "获取评论失败"}]
         response_data = json.loads(response.text)
         for i in range(0, 3):
             data = {
@@ -201,7 +201,7 @@ class ICan(CheckIn):
             }
             response = requests.post(url=url, headers=headers, data=json.dumps(data), verify=False)
             if response.status_code != 200:
-                return [{"name": "ICAN", "value": "记录血糖失败"}]
+                return [{"name": "ICAN", "value": "发布评论失败"}]
             msg.append({"name": f"ICAN 第{i}次发布评论", "value": "成功"})
             time.sleep(5)
         return msg
@@ -211,17 +211,81 @@ class ICan(CheckIn):
         # status_code = self.update_token(refresh_token)
         # if status_code != 200:
         #     return [{"name": "ICAN", "value": "token 过期"}]
-        temp = self.sign(refresh_token)
-        msg = "\n".join([f"{one.get('name')}: {one.get('value')}" for one in temp])
-        temp = self.record_blood_sugar(refresh_token)
-        msg = "\n".join([f"{one.get('name')}: {one.get('value')}" for one in temp])
-        temp = self.record_diet(refresh_token)
-        msg = "\n".join([f"{one.get('name')}: {one.get('value')}" for one in temp])
-        temp = self.record_uric_acid(refresh_token)
-        msg = "\n".join([f"{one.get('name')}: {one.get('value')}" for one in temp])
-        temp = self.post_a_comment(refresh_token)
-        msg = "\n".join([f"{one.get('name')}: {one.get('value')}" for one in temp])
+        msg = self.sign(refresh_token)
+        print(msg)
+        msg = self.record_blood_sugar(refresh_token)
+        print(msg)
+        msg = self.record_diet(refresh_token)
+        print(msg)
+        msg = self.record_uric_acid(refresh_token)
+        print(msg)
+        msg = self.post_a_comment(refresh_token)
+        print(msg)
+        msg = self.record_active(refresh_token)
+        print(msg)
+        msg = self.record_drug(refresh_token)
+        print(msg)
         return msg
+
+    def record_active(self, refresh_token):
+        msg = []
+        headers = {'Sino-Auth': refresh_token, 'Content-Type': 'application/json'}
+        url = f'{self.base_url}/api/sino-health/sportrecord/addSportRecordNew'
+        for i in range(0, 3):
+            data = [{
+                "sportPictures": "https://sino-cloud-base.oss-cn-hangzhou.aliyuncs.com/fileupload-develop/20210107/5a497a63e508fcc5eb97d702a13eb2dd.png",
+                "consumeEnergy": 153,
+                "dataSource": 1,
+                "remark": "",
+                "sportProjectId": "604f4ab83d7f102ccc166242",
+                "sportProjectName": "走路(慢)",
+                "sportRecordCompany": "分钟",
+                "sportRecordEnergy": 60,
+                "sportTime": (datetime.now()).strftime("%Y-%m-%d %H:%M:%S"),
+                "sportEnergy": "153",
+                "sportUnit": "分钟",
+                "sportUnitNum": 60,
+                "platformType": 3}]
+            response = requests.post(url=url, headers=headers, data=json.dumps(data), verify=False)
+            if response.status_code != 200:
+                return [{"name": "ICAN", "value": "记运动失败"}]
+            msg.append({"name": f"ICAN 第{i}次记运动", "value": "成功"})
+            time.sleep(5)
+        return msg
+        pass
+
+    def record_drug(self, refresh_token):
+        msg = []
+        headers = {'Sino-Auth': refresh_token, 'Content-Type': 'application/json'}
+        url = f'{self.base_url}/api/sino-health/v1/drug-record/save-drug-record-new'
+        for i in range(0, 3):
+            time_ = (datetime.now()).strftime("%Y-%m-%d %H:%M:%S")
+            data = {
+                "platformType": 9,
+                "saveRecord": 1,
+                "dataSource": 1,
+                "list": [
+                    {"drugId": "5dbb9bad0c07bb0008df65b4",
+                     "drugName": "消渴丸",
+                     "drugNum": 1,
+                     "drugBrand": "消渴丸 含格列本脲",
+                     "drugTime": time_,
+                     "drugUnit": "丸",
+                     "drugSpec": "2.5mg/10丸",
+                     "type": 1,
+                     "isSupplement": 1,
+                     "minute": "",
+                     "period": 4,
+                     "remark": "",
+                     "id": "5dbb9bad0c07bb0008df65b4"}],
+                "drugTime": (datetime.now()).strftime("%Y-%m-%d %H:%M:%S")}
+            response = requests.post(url=url, headers=headers, data=json.dumps(data), verify=False)
+            if response.status_code != 200:
+                return [{"name": "ICAN", "value": "记用药失败"}]
+            msg.append({"name": f"ICAN 第{i}次记用药", "value": "成功"})
+            time.sleep(5)
+        return msg
+        pass
 
 
 if __name__ == "__main__":
@@ -231,4 +295,5 @@ if __name__ == "__main__":
     ) as f:
         datas = json.loads(f.read())
     _check_item = datas.get("ICAN", [])[0]
+    print(f'账户 {_check_item}')
     print(ICan(check_item=_check_item).main())
