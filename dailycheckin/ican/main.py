@@ -173,19 +173,29 @@ class ICan(CheckIn):
         headers = {'Sino-Auth': refresh_token, 'Content-Type': 'application/json'}
         url = f'{self.base_url}/api/sino-social/dailyQuestion/getQuestion'
 
+        response = requests.get(url=url, headers=headers, verify=False)
+        if response.status_code != 200:
+            print(response)
+            return [{"name": "ICAN", "value": "获取题目失败"}]
+        response_data = json.loads(response.text)
+        options=response_data['data']['options']
+
+
     def post_a_comment(self, refresh_token):
         msg = []
+        time_= int(datetime.now().timestamp()*1000)
         headers = {'Sino-Auth': refresh_token, 'Content-Type': 'application/json'}
         get_by_score_url = f'{self.base_url}/api/sino-social/messageinformation/get-by-score'
         url = f'{self.base_url}/api/sino-social/reviewinformation/add'
         data = {
             "current": 1,
             "size": 10,
-            "createTime": datetime.now().timestamp(),
+            "createTime": time_,
             "isTop": ""
         }
         response = requests.post(url=get_by_score_url, headers=headers, data=json.dumps(data), verify=False)
         if response.status_code != 200:
+            print(response)
             return [{"name": "ICAN", "value": "获取评论失败"}]
         response_data = json.loads(response.text)
         for i in range(0, 3):
@@ -225,6 +235,8 @@ class ICan(CheckIn):
         print(msg)
         msg = self.record_drug(refresh_token)
         print(msg)
+        # msg=self.get_question(refresh_token)
+        # print(msg)
         return msg
 
     def record_active(self, refresh_token):
